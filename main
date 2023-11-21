@@ -1,0 +1,90 @@
+import openpyxl
+from openpyxl import load_workbook, Workbook
+from instaloader import Instaloader, Profile
+import time
+
+
+usernames = {
+        "Biden Political": "joebiden",
+    "Biden Official": "potus",
+    "Harris Political": "kamalaharris",
+    "Harris Official": "vp",
+    "Newsom Political & Official": "gavinnewsom",
+    "Kennedy Political": "robertfkennedyjr",
+    "Burgum Political": "dougburgum",
+    "Burgum Official": "govdougburgum",
+    "Desantis Political": "rondesantis",
+    "Desantis Official": "flgovrondesantis",
+    "Desantis War Room": "desantiswarroom",
+    "Team Desantis": "teamrondesantis",
+    "Hutchinson Political": "asaforpresident",
+    "Hutchinson Official": "govasahutchinson",
+    "Ramasawamy Political": "vivekgramaswamy",
+    "Haley Political": "nikkihaley",
+    "Pence Political": "mikepence",
+    "Pence Official - Archive": "vp45",
+    "Scott Political": "votetimscott",
+    "Scott Official": "senatortimscott",
+    "Trump Political": "realdonaldtrump",
+    "Team Trump": "teamtrump",
+    "Christie Political & Official": "chrischristie",
+    "Elder Political": "larryeldershow",
+    "Hurd Political": "willhurd",
+    "Perry Johnson Political": "perry4america",
+    "Binkley Political": "ryanbinkley2024"
+}
+
+
+def get_follower_count():
+    try:
+        # Load existing workbook
+        wb = load_workbook('follower_counts.xlsx')
+    except FileNotFoundError:
+        # If the workbook doesn't exist, create a new one
+        wb = Workbook()
+
+    sheet = wb.active
+
+    L = Instaloader()
+
+    for account_name, username in usernames.items():
+        try:
+            profile = Profile.from_username(L.context, username)
+            follower_count = profile.followers
+
+            if account_name in ["Biden Political", "Biden Official", "Harris Political", "Harris Official", "Newsom Political & Official"]:
+                party = "Democrat"
+            elif account_name in ["Burgum Political", "Burgum Official", "Desantis Political", "Desantis Official", "Desantis War Room", "Team Desantis",
+                                  "Hutchinson Political & Official", "Hutchinson PAC", "Ramasawamy Political", "Haley Political", "Haley Official - Archive",
+                                  "Pence Political", "Pence Official - Archive", "Scott Political", "Scott Official", "Trump Political", "Trump Official - Archive",
+                                  "Christie Political & Official", "Elder Political", "Hurd Political", "Perry Johnson Political", "Binkley Political"]:
+                party = "Republican"
+            elif account_name in ["Kennedy Political"]:
+                party = "Independent"
+            else:
+                party = ""  # Default party label for accounts not categorized
+
+
+            # Check if the entry already exists in the sheet
+            entry_exists = False
+            for row in sheet.iter_rows(min_row=2, max_col=4):
+                if row[2].value == "@" + username:  # Check the second element in the tuple (column C)
+                    entry_exists = True
+                    row[0].value = time.strftime("%Y-%m-%d %H:%M:%S")
+                    row[3].value = follower_count  # Update the third element in the tuple (column D)
+                    break
+
+            if not entry_exists:
+                print(f"Adding new entry for {account_name} (@{username}): {follower_count}")
+                sheet.append([time.strftime("%Y-%m-%d %H:%M:%S"), account_name, "@" + username, follower_count, "Instagram", party])
+
+            wb.save('follower_counts.xlsx')
+            time.sleep(180)
+
+        except Exception as e:
+            print(f"Error fetching data for {account_name} (@{username}): {e}")
+
+    # Close the workbook
+    wb.close()
+
+get_follower_count()
